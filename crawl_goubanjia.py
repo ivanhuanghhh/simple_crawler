@@ -4,7 +4,6 @@ from pyquery import PyQuery as pq
 
 url = 'http://www.goubanjia.com/'
 
-
 def get_ip(row):
     """
     移除干扰爬虫的 none 元素，CSS 选择器要分别处理有空格和没空格的值
