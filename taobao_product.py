@@ -4,9 +4,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import ActionChains
+from pyquery import PyQuery as pq
 import time
 import pymongo
 import re
+from utils import retry
 
 KEYWORD = '小米8'
 MAX_PAGE = 100
@@ -31,43 +33,39 @@ class ProductSpider:
         self.titles = []
         self.repete_count = 0
 
-    def index_page(self, page):
-        url = f'https://s.taobao.com/search?q={KEYWORD}'
+    def get_url(self, page):
+        product_count_per_page = 44
+        start = (page - 1) * product_count_per_page
+        return f'https://s.taobao.com/search?q={KEYWORD}&s={start}'
+
+    @retry()
+    def index_page(self, page, retry_time=0):
+        # p4ppushleft=1,48&s=132
+        url = self.get_url(page)
         print(f"开始抓取第 {page} 页")
-        try:
-            self.driver.get(url)
-            if page > 1:
-                page_input = self.wait.until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, '.J_Input')))
-                go_btn = self.wait.until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, '.J_Submit')))
 
-                target_page = int(page_input.get_attribute('value'))
-                if target_page != page:
-                    page_input.clear()
-                    time.sleep(0.3)
-                    page_input.send_keys(str(page))
+        self.driver.get(url)
+        if page > 1:
+            page_input = self.wait.until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, '.J_Input')))
+            go_btn = self.wait.until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, '.J_Submit')))
 
-                go_btn.click()
+            target_page = int(page_input.get_attribute('value'))
+            if target_page != page:
+                page_input.clear()
+                page_input.send_keys(str(page))
 
-            self.wait.until(
-                EC.text_to_be_present_in_element((By.CSS_SELECTOR, '#mainsrp-pager .item.active span'), str(page))
-            )
-            self.extract_product()
+            go_btn.click()
 
-        except TimeoutException:
-            print('超时重试')
-            self.index_page(page)
-
-        except BaseException as e:
-            print('未知错误', e)
-            self.index_page(page)
+        self.wait.until(
+            EC.text_to_be_present_in_element((By.CSS_SELECTOR, '#mainsrp-pager .item.active span'), str(page))
+        )
+        self.extract_product_by_pq()
 
     def extract_product(self):
         self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.m-itemlist .items .item')))
         products = self.driver.find_elements_by_css_selector('.m-itemlist .items .item')
-        # products = self.wait.until(
-        #     EC.visibility_of_all_elements_located((By.CLASS_NAME, 'J_MouserOnverReq')))
 
         for item in products:
             img = item.find_element_by_class_name('J_ItemPic')
@@ -86,6 +84,21 @@ class ProductSpider:
                 'title': title.text,
                 'shopname': shop.text,
                 'shop_url': shop.get_attribute('href')
+            }
+            self.save_product(product)
+
+    def extract_product_by_pq(self):
+        doc = pq(self.driver.page_source)
+        for item in doc('.m-itemlist .items .item').items():
+            buy_count = item.find('.deal-cnt').text()
+            product = {
+                'image_url': item.find('.J_ItemPic').attr.src,
+                'price': item.find('.price strong').text(),
+                'buy_count': self.extract_buy_count(buy_count),
+                'location': item.find('.location').text(),
+                'title': item.find('.title').text().replace('\n', ''),
+                'shopname': item.find('.shopname').text(),
+                'shop_url': item.find('.shopname').attr.href
             }
             self.save_product(product)
 
@@ -114,11 +127,11 @@ class ProductSpider:
 
     def run(self):
         count = 0
-        for i in range(41, MAX_PAGE):
+        start_page = 1
+        for i in range(start_page, MAX_PAGE + 1):
             self.index_page(i)
             count += 1
-            if count > 2:
-                break
+
         print('总页数: ', count)
         print('总重复数量: ', self.repete_count)
 
