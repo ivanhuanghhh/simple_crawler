@@ -23,4 +23,4 @@ make test
 
 遍历所有页面，爬取各个页面的商品，提取图片、商品名称、店铺名，价钱、购买人数存入 `mongodb` 。
 
-无法在 `url` 指定页数，等 JS 把分页元素渲染出来，再输入相应的页数，点击确定进行跳转。
+![mongodb 部分数据](images/taobao_products_collection.png?raw=true "数据")
