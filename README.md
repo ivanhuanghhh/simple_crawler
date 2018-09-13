@@ -10,8 +10,20 @@ python3 crawl_goubanjia.py
 make test
 ```
 
-### 爬取 goubanjia 免费代理
+### 爬取 Goubanjia 免费代理
 文件为 `crawl_goubanjia.py`, 爬取 goubanjia 的免费代理，表格的 ip 中有一些 `diplay: none` 的干扰元素，需要移除这些元素。
+
+### 抓取 Github 已关注用户的动态
+`crawl_github_activity.py`，使用 `requests.session` 先登录，然后获取首页的动态 (activity) 以及个人页的邮箱信息。结果如下:
+
+```shell
+➜  simple_crawler git:(master) ✗ python3 crawl_github_activity.py
+wizardforcel starred chyyuu/ucore_os_docs Sep 13, 2018
+wizardforcel starred llSourcell/AI_Freelancing Sep 13, 2018
+wjp2013 starred 2 repositories Sep 13, 2018
+...
+name is jiangwen, email is hjiangwen1@163.com
+```
 
 ### 模拟淘宝登录，进入个人页
 文件为 `taobao_login.py`，使用 `selenium` 在浏览器模拟登录。
