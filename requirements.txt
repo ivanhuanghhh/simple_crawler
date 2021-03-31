@@ -4,7 +4,7 @@ certifi==2018.8.24
 chardet==3.0.4
 cssselect==1.0.3
 idna==2.7
-lxml==4.2.4
+lxml==4.6.3
 more-itertools==4.3.0
 pluggy==0.7.1
 py==1.6.0
